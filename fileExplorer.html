@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>File Explorer</title>
+<style>
+    body, html {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        font-family: Arial, sans-serif;
+        background-color: #ffffff; /* White background */
+    }
+    
+    .header {
+        background-color: #333; /* Dark background for header */
+        color: #fff; /* Text color for header */
+        padding: 10px 20px; /* Padding for header */
+        display: flex;
+        align-items: center;
+    }
+
+    .logo {
+        width: 150px; /* Adjust width of the logo */
+        height: auto; /* Maintain aspect ratio */
+        margin-right: 10px; /* Margin between logo and project name */
+    }
+
+    .project-name {
+        font-size: 20px; /* Adjust font size of project name */
+    }
+
+    .container {
+        display: flex;
+        height: calc(100% - 50px); /* Subtract header height from total height */
+    }
+
+    .column {
+        flex: 1;
+        padding: 20px;
+        border: 1px solid #ccc; /* Border */
+        border-radius: 10px; /* Rounded edges */
+        overflow: hidden; /* Ensure rounded corners are visible */
+        display: flex; /* Added to allow vertical centering */
+        flex-direction: column; /* Added to allow vertical centering */
+    }
+
+    .center {
+        flex: 0 0 50%;
+
+    }
+
+    .left, .right {
+
+    }
+
+    h2 {
+        margin-top: 0; /* Adjust the top margin of headings */
+        margin-bottom: 0; /* Adjust the top margin of headings */
+    }
+    ul {
+        list-style-type: none;
+        padding-left: 10px;
+    }
+    .folder {
+        cursor: pointer;
+        margin: 10px;
+    }
+    .folder::before {
+        content: "\25b6"; /* Unicode character for right-pointing triangle */
+        display: inline-block;
+        margin-right: 5px;
+    }
+    .folder.open::before {
+        content: "\25bc"; /* Unicode character for down-pointing triangle */
+    }
+    .sub-folder {
+        display: none;
+    }
+    .sub-folder.open {
+        display: block;
+    }
+    .file-list {
+        margin-top: 10px;
+        padding-left: 20px;
+    }
+    .file {
+        cursor: pointer;
+        padding: 5px;
+        margin-bottom: 5px;
+        background-color: #f4f4f4;
+        border-radius: 5px;
+        height: 30px;
+        display: flex;
+        flex-direction: row;
+    }
+    .file:hover {
+        background-color: #e0e0e0;
+
+    }
+    .fileListRevision {
+        margin: auto;
+        display: flex;
+        width: 30%;
+        text-align: left;
+    }
+    .filerevisionRev {
+        margin: auto;
+        display: flex;
+        width: 30%;
+        text-align: left;
+    }
+    .filenameRev {
+        margin: auto;
+        display: flex;
+        width: 100%;
+        text-align: left;
+    }
+    .file h3 {
+        display: flex;
+        margin: auto;
+        margin-left: auto;
+        text-align: left;
+        width: 100%;
+
+    }
+    .revisions-button {
+        cursor: pointer;
+        background-color: #4CAF50;
+        color: white;
+        border: none;
+        border-radius: 3px;
+        margin: auto 0;
+        text-align: center;
+        text-decoration: none;
+        display: inline-block;
+
+    }
+    .revisions-button:hover {
+        background-color: #45a049;
+    }
+    .property-list {
+        margin-top: 10px;
+        padding-left: 20px;
+        height: 50%;
+    }
+    .revision-list {
+        margin-top: 10px;
+        height: 50%;
+    }
+    .property {
+        margin-bottom: 5px;
+    }
+    .no-arrow::before {
+        display: none; /* Hide arrow icon for folders without sub-folders */
+    }
+    .divider {
+        border-top: 1px solid #ccc;
+        margin: 10px 0;
+    }
+</style>
+</head>
+<body>
+    <div class="header">
+        <img src="https://www.keltbray.com/wp-content/themes/keltbray/assets/img/logo/Keltbray_logo_white_new.svg" alt="Company Logo" class="logo"> <!-- Company logo -->
+        <h1 class="project-name">Project Name</h1> <!-- Project name -->
+    </div>
+    <div class="container">
+        <div class="column left">
+            <h2>Folders</h2> <!-- Title for the left column -->
+            <div id="folderStructure"></div>
+        </div>
+        <div class="column center">
+            <h2>Files</h2> <!-- Title for the center column -->
+            <div id="fileList" class="file-list"></div>
+
+        </div>
+        <div class="column right">
+            <h2>Properties</h2> <!-- Title for the right column -->
+            <div id="propertyList" class="property-list">
+                
+            </div>
+            <div class="divider"></div>
+            <h2>Revisions</h2> <!-- Title for the right column -->
+            <div id="revisionsList" class="revision-list">
+                
+            </div>
+        </div>
+    </div>
+    <script>
+        let fileListElement
+        let folderStructureElement
+        let propertiesElement
+        let fileList
+
+        const folders = [
+            { folderID: "1", folderName: "Project Files", parentFolderID: "0" },
+            { folderID: "2", folderName: "Incoming", parentFolderID: "1" },
+            { folderID: "3", folderName: "General", parentFolderID: "1" },
+            { folderID: "4", folderName: "Keltbray", parentFolderID: "1" },
+            { folderID: "5", folderName: "Shared", parentFolderID: "1" },
+            { folderID: "6", folderName: "WIP", parentFolderID: "4" }
+        ];
+
+
+
+        const files = [
+            { folderID:"2",fileID: "1", fileName: "Test File 1", size: "345", extension: ".txt", version:"1", revision:"P01" },
+            { folderID:"2",fileID: "2", fileName: "Test File 2", size: "210", extension: ".xlsx", version:"1", revision:"P01" },
+            { folderID:"3",fileID: "3", fileName: "Test File 3", size: "300", extension: ".txt", version:"1", revision:"P01" },
+            { folderID:"6",fileID: "4", fileName: "Test File 4", size: "1500", extension: ".dwg", version:"3", revision:"P01.03" },
+            { folderID:"6",fileID: "4", fileName: "Test File 4", size: "1500", extension: ".dwg", version:"2", revision:"P01.02" },
+            { folderID:"6",fileID: "4", fileName: "Test File 4", size: "1500", extension: ".dwg", version:"1", revision:"P01.01" },
+            { folderID:"6",fileID: "5", fileName: "Test File 5", size: "900", extension: ".docx", version:"4", revision:"P02.02" },
+            { folderID:"6",fileID: "5", fileName: "Test File 5", size: "900", extension: ".docx", version:"3", revision:"P02.01" },
+            { folderID:"6",fileID: "5", fileName: "Test File 5", size: "900", extension: ".docx", version:"2", revision:"P01" },
+            { folderID:"6",fileID: "5", fileName: "Test File 5", size: "900", extension: ".docx", version:"1", revision:"P01.01" },
+            { folderID:"6",fileID: "6", fileName: "Test File 6", size: "150", extension: ".docx", version:"1", revision:"P01" },
+            { folderID:"5",fileID: "7", fileName: "Test File 7", size: "540", extension: ".xlsx", version:"1", revision:"P01" },
+            { folderID:"5",fileID: "8", fileName: "Test File 8", size: "500", extension: ".dwg", version:"1", revision:"P01" }
+        ];
+
+
+        document.addEventListener("DOMContentLoaded", function() {
+            fileListElement = document.getElementById('fileList')
+            folderStructureElement = document.getElementById('folderStructure')
+            propertiesElement = document.getElementById('propertyList')
+            revisionsElement = document.getElementById('revisionsList')
+
+            folderStructureElement.innerHTML = generateFolderStructure('0', folders);
+
+                    // Display files when clicking on a folder
+            document.querySelectorAll('.folder').forEach(folder => {
+                const subFolder = folder.querySelector('.sub-folder');
+                    if (!subFolder) {
+                        folder.classList.add('no-arrow');
+                    }
+
+                folder.addEventListener('click', function(event) {
+                    const folderID = this.getAttribute('data-folder-id');
+                    fileList = files.filter(file => file.folderID === folderID);
+                    console.log(fileList)
+                    renderFileList(fileList);
+                    const subFolder = this.querySelector('.sub-folder');
+                    if (subFolder) {
+                        subFolder.classList.toggle('open');
+                        event.stopPropagation(); // Prevent event propagation to parent folders
+                        
+                    }
+                    this.classList.toggle('open');
+                    event.stopPropagation(); // Prevent event propagation to parent folders
+
+                });
+            });
+
+            function renderFileList(fileList) {
+                // Create a map to store the latest version of each file
+                const latestVersionsMap = new Map();
+
+                // Iterate through the fileList to find the latest version of each file
+                fileList.forEach(file => {
+                    const existingFile = latestVersionsMap.get(file.fileName);
+                    if (!existingFile || parseInt(file.version) > parseInt(existingFile.version)) {
+                        latestVersionsMap.set(file.fileName, file);
+                    }
+                });
+
+                // Convert the latest versions map to an array
+                const latestVersions = Array.from(latestVersionsMap.values());
+
+                // Render the latest versions of files
+                let html = '<ul>';
+                latestVersions.forEach(file => {
+                    html += `<li class="file" data-file-id="${file.fileID}"><h3>${file.fileName}</h3><p class="fileListRevision">${file.revision}</p>
+                        </li>`;
+                        //<button class="revisions-button">Previous Revisions</button>
+                });
+                html += '</ul>';
+            fileListElement.innerHTML = html;
+
+            // Display properties when clicking on a file
+            document.querySelectorAll('h3').forEach(file => {
+                file.addEventListener('click', function(event) {
+                    const fileID = this.parentElement.getAttribute('data-file-id');
+                    console.log(fileID)
+                    const fileProperties = files.find(file => file.fileID === fileID);
+                    //const fileProperties = files.filter(file => file.fileID === fileID);
+                    console.log(fileProperties)
+                    const fileVersions = files.filter(file => file.fileID === fileID);
+                    console.log(fileVersions)
+                    renderRevisionsList(fileVersions);
+                    renderPropertyList(fileProperties);
+                    event.stopPropagation();
+                });
+            });
+
+            // Handle "See Revisions" button click
+            document.querySelectorAll('.revisions-button').forEach(button => {
+                button.addEventListener('click', function(event) {
+                    const fileID = this.parentElement.getAttribute('data-file-id');
+                    const fileVersions = files.filter(file => file.fileID === fileID);
+                    console.log(fileVersions)
+                    renderRevisionsList(fileVersions);
+                    event.stopPropagation();
+                });
+            });
+            }
+
+
+            function renderPropertyList(fileProperties) {
+                let html = '<ul>';
+                for (const property in fileProperties) {
+                    html += `<li class="property"><strong>${property}:</strong> ${fileProperties[property]}</li>`;
+                }
+                html += '</ul>';
+                propertiesElement.innerHTML = html;
+            }
+
+            function renderRevisionsList(fileVersions) {
+                let html = '<ul>';
+                fileVersions.forEach(file => {
+                    html += `<li class="file" data-file-id="${file.fileID}"><p class="filenameRev">${file.fileName}</p><p class="filerevisionRev">${file.revision}</p></li>`;
+                });
+                html += '</ul>';
+                revisionsElement.innerHTML = html;
+            }
+        });
+
+        function generateFolderStructure(parentFolderID, folders) {
+            const childFolders = folders.filter(folder => folder.parentFolderID === parentFolderID);
+            if (childFolders.length === 0) return '';
+
+            let html = '<ul>';
+            childFolders.forEach(folder => {
+                html += `<li class="folder" data-folder-id="${folder.folderID}">${folder.folderName}`;
+                const subFolders = generateFolderStructure(folder.folderID, folders);
+                if (subFolders) {
+                    html += `<ul class="sub-folder">${subFolders}</ul>`;
+                }
+                html += '</li>';
+            });
+            html += '</ul>';
+            return html;
+        }
+
+
+
+    </script>
+</body>
+</html>
